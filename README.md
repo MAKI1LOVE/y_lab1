@@ -1,9 +1,11 @@
 # y_lab1
-First task.
+First and second task.
 
 ## Requirements
 * python3
-* python3-venv
+* docker-compose
 
 ## Install
-Change `.env.example` as you need and copy it to `.env`. Then run `run.sh` (chmod if needed).
+Change `.env.example` as you need and copy it to `.env`.
+
+Run `docker-compose up -d`.
