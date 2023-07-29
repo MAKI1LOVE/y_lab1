@@ -118,7 +118,7 @@ async def test_patch_dish_invalid_id(client):
     assert response.json()['detail'] == 'dish not found'
 
 
-@pytest.mark.ascyno
+@pytest.mark.asyncio
 async def test_delete_dish(client):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -135,7 +135,7 @@ async def test_delete_dish(client):
     assert out['detail'] == 'The dish has been deleted'
 
 
-@pytest.mark.ascyno
+@pytest.mark.asyncio
 async def test_delete_dish_invalid_uuid(client):
     response: Response = \
         await client.delete(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}/dishes/{uuid.uuid4()}')
