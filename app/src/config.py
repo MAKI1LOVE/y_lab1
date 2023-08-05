@@ -16,5 +16,14 @@ class Settings:
         self.DB_URL = \
             f'postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
 
+        self.REDIS_NAME = os.getenv('REDIS_NAME')
+        self.REDIS_HOST = os.getenv('REDIS_HOST')
+        self.REDIS_PORT = os.getenv('REDIS_PORT')
+        self.REDIS_USER = os.getenv('REDIS_USER')
+        self.REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
+
+        self.REDIS_URL = \
+            f'redis://{self.REDIS_USER}:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_NAME}'
+
 
 settings = Settings()

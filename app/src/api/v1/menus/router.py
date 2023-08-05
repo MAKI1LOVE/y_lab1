@@ -1,6 +1,8 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, HTTPException, Path, status
+from aioredis import Redis
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from src.api.v1.menus.exceptions import menu_not_found
 from src.api.v1.menus.schemas import Menu, NewMenu
 from src.api.v1.menus.service import (
@@ -10,51 +12,79 @@ from src.api.v1.menus.service import (
     get_menu_by_id,
     update_menu,
 )
+from src.database import get_redis
+from src.dependencies import delete_all_keys, get_key, set_key
 
 menus_router = APIRouter()
 
 
 @menus_router.get('', status_code=200, response_model=list[Menu])
-async def get_menus():
-    menus = await get_all_menus()
-    if menus is None:
+async def get_menus(redis: Annotated[Redis, Depends(get_redis)]):
+    cache = await get_key(redis, 'menus')
+    if cache:
+        return [Menu.model_validate(menu) for menu in cache]
+
+    menus_db = await get_all_menus()
+    if menus_db is None:
         return []
 
-    return [Menu.model_validate(menu) for menu in menus]
+    menus = [Menu.model_validate(menu) for menu in menus_db]
+    await set_key(redis, 'menus', menus)
+
+    return menus
 
 
 @menus_router.post('', status_code=201, response_model=Menu)
-async def create_menu(new_menu: NewMenu = Body()):
-    menu = await add_menu(new_menu.title, new_menu.description)
-    if menu is None:
+async def create_menu(new_menu: Annotated[NewMenu, Body()], redis: Annotated[Redis, Depends(get_redis)]):
+    menu_db = await add_menu(new_menu.title, new_menu.description)
+    if menu_db is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='smth bad'
         )
 
-    return Menu.model_validate(menu)
+    menu = Menu.model_validate(menu_db)
+    await set_key(redis, f'menu_{menu.id}', menu)
+
+    return menu
 
 
 @menus_router.get('/{menu_uuid}', status_code=200, response_model=Menu)
-async def get_menu(menu_uuid: UUID = Path()):
-    menu = await get_menu_by_id(menu_uuid)
-    if menu is None:
+async def get_menu(menu_uuid: Annotated[UUID, Path()], redis: Annotated[Redis, Depends(get_redis)]):
+    cache = await get_key(redis, f'menu_{menu_uuid}')
+    if cache is not None:
+        return Menu.model_validate(cache)
+
+    menu_db = await get_menu_by_id(menu_uuid)
+    if menu_db is None:
         await menu_not_found()
 
-    return Menu.model_validate(menu)
+    menu = Menu.model_validate(menu_db)
+    await set_key(redis, f'menu_{menu.id}', menu)
+    return menu
 
 
 @menus_router.patch('/{menu_uuid}', status_code=200, response_model=Menu)
-async def patch_menu(menu_uuid: UUID = Path(), new_menu: NewMenu = Body()):
+async def patch_menu(
+        menu_uuid: Annotated[UUID, Path()],
+        new_menu: Annotated[NewMenu, Body()],
+        redis: Annotated[Redis, Depends(get_redis)]
+):
     updated_menu_id = await update_menu(menu_uuid, new_menu.title, new_menu.description)
     if updated_menu_id is None:
         await menu_not_found()
 
-    return await get_menu_by_id(updated_menu_id[0])
+    menu_db = await get_menu_by_id(updated_menu_id[0])
+    menu = Menu.model_validate(menu_db)
+    await set_key(redis, f'menu_{menu.id}', menu)
+
+    return menu
 
 
 @menus_router.delete('/{menu_uuid}', status_code=200)
-async def delete_menu(menu_uuid: UUID = Path()):
+async def delete_menu(menu_uuid: Annotated[UUID, Path()], redis: Annotated[Redis, Depends(get_redis)]):
+    await delete_all_keys(redis, f'menu_{menu_uuid}')
+    await redis.delete('menus')
     await delete_menu_by_id(menu_uuid)
 
     return {'status': True, 'detail': 'The menu has been deleted'}

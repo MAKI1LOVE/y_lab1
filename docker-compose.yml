@@ -20,6 +20,25 @@ services:
     networks:
       - prod_network
 
+  redis:
+    image: redis:7.2-rc-alpine
+    restart: always
+    command: /bin/sh -c "redis-server --requirepass ${REDIS_PASSWORD}"
+    environment:
+      REDIS_USER: ${REDIS_USER}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 1
+    ports:
+      - "${REDIS_PORT}:6379"
+    expose:
+      - "${REDIS_PORT}"
+    networks:
+      - prod_network
+
   app:
     build:
       context: ./app
@@ -30,6 +49,10 @@ services:
       DB_PORT: 5432
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: 6379
+      REDIS_USER: ${REDIS_USER}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "8000:8000"
     entrypoint: sh -c "uvicorn src.main:app --host 0.0.0.0 --port 8000"
@@ -37,6 +60,8 @@ services:
       - prod_network
     depends_on:
       sql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 networks:

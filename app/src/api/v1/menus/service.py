@@ -1,6 +1,9 @@
-import uuid
+from __future__ import annotations
 
-from sqlalchemy import delete, func, join, select, update
+import uuid
+from collections.abc import Sequence
+
+from sqlalchemy import Row, delete, func, join, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import coalesce
@@ -9,7 +12,7 @@ from src.dependencies import get_session_deco
 
 
 @get_session_deco
-async def get_all_menus(session: AsyncSession):
+async def get_all_menus(session: AsyncSession) -> Sequence[Row]:
     """
     SELECT m.id, m.title, m.description, COUNT(t.id) AS submenus, SUM(COALESCE(t.dishes, 0)) AS dishes
         FROM menus AS m
@@ -53,7 +56,7 @@ async def get_all_menus(session: AsyncSession):
 
 
 @get_session_deco
-async def add_menu(title: str, description: str, session: AsyncSession):
+async def add_menu(title: str, description: str, session: AsyncSession) -> Row:
     stmt = insert(menus_table).values({
         'title': title,
         'description': description
@@ -63,7 +66,7 @@ async def add_menu(title: str, description: str, session: AsyncSession):
 
 
 @get_session_deco
-async def get_menu_by_id(menu_uuid: uuid.UUID, session: AsyncSession):
+async def get_menu_by_id(menu_uuid: uuid.UUID, session: AsyncSession) -> Row | None:
     f"""
     SELECT m.id, m.title, m.description, COUNT(t.id) AS submenus, SUM(COALESCE(t.dishes, 0)) AS dishes
         FROM menus AS m
@@ -111,7 +114,7 @@ async def get_menu_by_id(menu_uuid: uuid.UUID, session: AsyncSession):
 
 
 @get_session_deco
-async def update_menu(menu_uuid: uuid.UUID, title: str, description: str, session: AsyncSession):
+async def update_menu(menu_uuid: uuid.UUID, title: str, description: str, session: AsyncSession) -> Row | None:
     stmt = update(menus_table) \
         .where(menus_table.c.id == menu_uuid) \
         .values(

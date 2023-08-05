@@ -1,7 +1,9 @@
 import contextlib
 import uuid
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
+import aioredis
+from aioredis import Redis
 from sqlalchemy import Column, ForeignKey, MetaData, String, Table, Uuid
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -19,12 +21,17 @@ metadata = MetaData()
 
 async def init_db():
     global engine, session_maker
+
     engine = create_async_engine(settings.DB_URL, echo=False)
     session_maker = async_sessionmaker(bind=engine, expire_on_commit=True)
 
     async with engine.begin() as conn:
         await conn.run_sync(metadata.drop_all)
         await conn.run_sync(metadata.create_all)
+
+    redis = await aioredis.from_url(settings.REDIS_URL)
+    await redis.flushall()
+    await redis.close()
 
     print('connected')
 
@@ -33,6 +40,12 @@ async def init_db():
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with session_maker.begin() as session:
         yield session
+
+
+async def get_redis() -> AsyncGenerator[Redis, None]:
+    redis = await aioredis.from_url(settings.REDIS_URL)
+    yield redis
+    await redis.close()
 
 
 menus_table = Table(

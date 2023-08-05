@@ -1,6 +1,5 @@
 import uuid
 
-import pytest
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
 from src.api.v1.dishes.service import add_dish
@@ -8,7 +7,6 @@ from src.api.v1.menus.service import add_menu
 from src.api.v1.submenus.service import add_submenu
 
 
-@pytest.mark.asyncio
 async def test_get_dishes_empty(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -21,8 +19,7 @@ async def test_get_dishes_empty(client: TestClient):
     assert response.json() == []
 
 
-@pytest.mark.asyncio
-async def test_add_dish(client: TestClient):
+async def test_create_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '12.1234'}
@@ -39,7 +36,6 @@ async def test_add_dish(client: TestClient):
     assert out['price'][-3] == '.'
 
 
-@pytest.mark.asyncio
 async def test_get_dishes(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -58,7 +54,6 @@ async def test_get_dishes(client: TestClient):
     assert out[0]['title'] in (new_dish1['title'], new_dish2['title'])
 
 
-@pytest.mark.asyncio
 async def test_get_dish_by_id(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -77,7 +72,6 @@ async def test_get_dish_by_id(client: TestClient):
     assert out['price'] == '12.00'
 
 
-@pytest.mark.asyncio
 async def test_get_dish_by_invalid_id(client: TestClient):
     response: Response = await client.get(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}/dishes/{uuid.uuid4()}')
 
@@ -85,7 +79,6 @@ async def test_get_dish_by_invalid_id(client: TestClient):
     assert response.json()['detail'] == 'dish not found'
 
 
-@pytest.mark.asyncio
 async def test_patch_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -106,7 +99,6 @@ async def test_patch_dish(client: TestClient):
     assert out['price'] == '0.00'
 
 
-@pytest.mark.asyncio
 async def test_patch_dish_invalid_id(client: TestClient):
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '0'}
 
@@ -118,7 +110,6 @@ async def test_patch_dish_invalid_id(client: TestClient):
     assert response.json()['detail'] == 'dish not found'
 
 
-@pytest.mark.asyncio
 async def test_delete_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -135,7 +126,6 @@ async def test_delete_dish(client: TestClient):
     assert out['detail'] == 'The dish has been deleted'
 
 
-@pytest.mark.asyncio
 async def test_delete_dish_invalid_uuid(client: TestClient):
     response: Response = \
         await client.delete(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}/dishes/{uuid.uuid4()}')
