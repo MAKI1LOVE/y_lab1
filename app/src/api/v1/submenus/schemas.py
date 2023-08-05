@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4, Field, ConfigDict
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 
 class SubMenu(BaseModel):

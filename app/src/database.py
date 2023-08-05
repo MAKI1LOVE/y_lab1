@@ -2,9 +2,13 @@ import contextlib
 import uuid
 from typing import AsyncGenerator
 
-from sqlalchemy import MetaData, Table, Column, String, Uuid, ForeignKey
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
-
+from sqlalchemy import Column, ForeignKey, MetaData, String, Table, Uuid
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from src.config import settings
 
 engine: AsyncEngine

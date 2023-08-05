@@ -1,16 +1,20 @@
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
-
 from src.api.v1.dishes.exceptions import dish_not_found
 from src.api.v1.dishes.schemas import Dish, NewDish
-from src.api.v1.dishes.service import get_all_dishes, add_dish, delete_dish_by_id, update_dish, get_dish_by_id
+from src.api.v1.dishes.service import (
+    add_dish,
+    delete_dish_by_id,
+    get_all_dishes,
+    get_dish_by_id,
+    update_dish,
+)
 
 dishes_router = APIRouter()
 
 
-@dishes_router.get('', status_code=200, response_model=List[Dish])
+@dishes_router.get('', status_code=200, response_model=list[Dish])
 async def get_dishes(menu_uuid: UUID, submenu_uuid: UUID):
     dishes = await get_all_dishes(submenu_uuid)
     if dishes is None:

@@ -1,6 +1,5 @@
-from _decimal import InvalidOperation, Decimal
-
-from pydantic import BaseModel, UUID4, field_validator, ConfigDict
+from _decimal import Decimal, InvalidOperation
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 
 class Dish(BaseModel):

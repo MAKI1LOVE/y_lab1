@@ -1,13 +1,13 @@
 import pytest
+from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-
 from src.api.v1.dishes.schemas import Dish
 from src.api.v1.menus.schemas import Menu
 from src.api.v1.submenus.schemas import SubMenu
 
 
 @pytest.mark.asyncio
-async def test_acceptance1(client):
+async def test_acceptance1(client: TestClient):
     new_menu = {'title': 't1', 'description': 'd1'}
     new_submenu1 = {'title': 'submenu1', 'description': 'submenu1 desc'}
     new_submenu2 = {'title': 'submenu2', 'description': 'submenu2 desc'}

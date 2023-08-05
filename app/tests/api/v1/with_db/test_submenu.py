@@ -1,14 +1,14 @@
 import uuid
 
 import pytest
+from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-
 from src.api.v1.menus.service import add_menu
 from src.api.v1.submenus.service import add_submenu
 
 
 @pytest.mark.asyncio
-async def test_get_submenus_empty(client):
+async def test_get_submenus_empty(client: TestClient):
     response: Response = await client.get(f'/api/v1/menus/{uuid.uuid4()}/submenus')
 
     assert response.status_code == 200
@@ -16,7 +16,7 @@ async def test_get_submenus_empty(client):
 
 
 @pytest.mark.asyncio
-async def test_add_submenu(client):
+async def test_add_submenu(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'submenu', 'description': 'd submenu'}
 
@@ -32,7 +32,7 @@ async def test_add_submenu(client):
 
 
 @pytest.mark.asyncio
-async def test_add_submenu_bad_params(client):
+async def test_add_submenu_bad_params(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 1, 'description': 'd submenu'}
 
@@ -43,14 +43,14 @@ async def test_add_submenu_bad_params(client):
 
 
 @pytest.mark.asyncio
-async def test_get_submenus(client):
+async def test_get_submenus(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu1 = {'title': 'submenu1', 'description': 'd submenu'}
     new_submenu2 = {'title': 'submenu2', 'description': 'd submenu'}
 
     menu = await add_menu(new_menu['title'], new_menu['description'])
-    submenu1 = await add_submenu(menu.id, new_submenu1['title'], new_submenu1['description'])
-    submenu2 = await add_submenu(menu.id, new_submenu2['title'], new_submenu2['description'])
+    await add_submenu(menu.id, new_submenu1['title'], new_submenu1['description'])
+    await add_submenu(menu.id, new_submenu2['title'], new_submenu2['description'])
     response: Response = await client.get(f'/api/v1/menus/{menu.id}/submenus')
 
     assert response.status_code == 200
@@ -61,7 +61,7 @@ async def test_get_submenus(client):
 
 
 @pytest.mark.asyncio
-async def test_get_submenu_by_id(client):
+async def test_get_submenu_by_id(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'submenu', 'description': 'd submenu'}
 
@@ -77,7 +77,7 @@ async def test_get_submenu_by_id(client):
 
 
 @pytest.mark.asyncio
-async def test_get_submenu_wrong_id(client):
+async def test_get_submenu_wrong_id(client: TestClient):
     response: Response = await client.get(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}')
 
     assert response.status_code == 404
@@ -85,7 +85,7 @@ async def test_get_submenu_wrong_id(client):
 
 
 @pytest.mark.asyncio
-async def test_update_submenu(client):
+async def test_update_submenu(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     old_submenu = {'title': 'submenu', 'description': 'd submenu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
@@ -99,7 +99,7 @@ async def test_update_submenu(client):
 
 
 @pytest.mark.asyncio
-async def test_update_submenu_invalid_uuid(client):
+async def test_update_submenu_invalid_uuid(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
 
@@ -111,7 +111,7 @@ async def test_update_submenu_invalid_uuid(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_submenu(client):
+async def test_delete_submenu(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
 
@@ -126,7 +126,7 @@ async def test_delete_submenu(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_submenu_invalid_uuid(client):
+async def test_delete_submenu_invalid_uuid(client: TestClient):
     response: Response = await client.delete(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}')
 
     assert response.status_code == 200

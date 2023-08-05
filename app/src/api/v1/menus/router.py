@@ -1,16 +1,20 @@
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Path, HTTPException, status, Body
-
+from fastapi import APIRouter, Body, HTTPException, Path, status
 from src.api.v1.menus.exceptions import menu_not_found
 from src.api.v1.menus.schemas import Menu, NewMenu
-from src.api.v1.menus.service import get_all_menus, add_menu, get_menu_by_id, update_menu, delete_menu_by_id
+from src.api.v1.menus.service import (
+    add_menu,
+    delete_menu_by_id,
+    get_all_menus,
+    get_menu_by_id,
+    update_menu,
+)
 
 menus_router = APIRouter()
 
 
-@menus_router.get('', status_code=200, response_model=List[Menu])
+@menus_router.get('', status_code=200, response_model=list[Menu])
 async def get_menus():
     menus = await get_all_menus()
     if menus is None:

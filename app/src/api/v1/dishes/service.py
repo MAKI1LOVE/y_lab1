@@ -1,9 +1,8 @@
 from uuid import UUID
 
-from sqlalchemy import select, delete, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.database import dishes_table, submenus_table
 from src.dependencies import get_session_deco
 
@@ -13,8 +12,7 @@ async def get_all_dishes(submenu_uuid: UUID, session: AsyncSession):
     stmt = select(
         dishes_table
     ).where(
-        dishes_table.c.submenu_id == submenu_uuid and
-        dishes_table.c.submenu_id == submenus_table.c.id
+        dishes_table.c.submenu_id == submenu_uuid and dishes_table.c.submenu_id == submenus_table.c.id
     )
 
     return (await session.execute(stmt)).all()

@@ -1,15 +1,15 @@
 import uuid
 
 import pytest
+from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-
 from src.api.v1.dishes.service import add_dish
 from src.api.v1.menus.service import add_menu
 from src.api.v1.submenus.service import add_submenu
 
 
 @pytest.mark.asyncio
-async def test_get_dishes_empty(client):
+async def test_get_dishes_empty(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
 
@@ -22,7 +22,7 @@ async def test_get_dishes_empty(client):
 
 
 @pytest.mark.asyncio
-async def test_add_dish(client):
+async def test_add_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '12.1234'}
@@ -40,7 +40,7 @@ async def test_add_dish(client):
 
 
 @pytest.mark.asyncio
-async def test_get_dishes(client):
+async def test_get_dishes(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     new_dish1 = {'title': 'new dish1', 'description': 'new d dish1', 'price': '12'}
@@ -48,8 +48,8 @@ async def test_get_dishes(client):
 
     menu = await add_menu(new_menu['title'], new_menu['description'])
     submenu = await add_submenu(menu.id, new_submenu['title'], new_submenu['description'])
-    dish1 = await add_dish(submenu.id, new_dish1['title'], new_dish1['description'], new_dish1['price'])
-    dish2 = await add_dish(submenu.id, new_dish1['title'], new_dish1['description'], new_dish1['price'])
+    await add_dish(submenu.id, new_dish1['title'], new_dish1['description'], new_dish1['price'])
+    await add_dish(submenu.id, new_dish1['title'], new_dish1['description'], new_dish1['price'])
     response: Response = await client.get(f'/api/v1/menus/{menu.id}/submenus/{submenu.id}/dishes')
 
     assert response.status_code == 200
@@ -59,7 +59,7 @@ async def test_get_dishes(client):
 
 
 @pytest.mark.asyncio
-async def test_get_dish_by_id(client):
+async def test_get_dish_by_id(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '12'}
@@ -78,7 +78,7 @@ async def test_get_dish_by_id(client):
 
 
 @pytest.mark.asyncio
-async def test_get_dish_by_invalid_id(client):
+async def test_get_dish_by_invalid_id(client: TestClient):
     response: Response = await client.get(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}/dishes/{uuid.uuid4()}')
 
     assert response.status_code == 404
@@ -86,7 +86,7 @@ async def test_get_dish_by_invalid_id(client):
 
 
 @pytest.mark.asyncio
-async def test_patch_dish(client):
+async def test_patch_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     old_dish = {'title': 'old dish', 'description': 'old d dish', 'price': '12'}
@@ -107,7 +107,7 @@ async def test_patch_dish(client):
 
 
 @pytest.mark.asyncio
-async def test_patch_dish_invalid_id(client):
+async def test_patch_dish_invalid_id(client: TestClient):
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '0'}
 
     response: Response = await client.patch(
@@ -119,7 +119,7 @@ async def test_patch_dish_invalid_id(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_dish(client):
+async def test_delete_dish(client: TestClient):
     new_menu = {'title': 'menu', 'description': 'd menu'}
     new_submenu = {'title': 'new submenu', 'description': 'new d submenu'}
     new_dish = {'title': 'new dish', 'description': 'new d dish', 'price': '12'}
@@ -136,7 +136,7 @@ async def test_delete_dish(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_dish_invalid_uuid(client):
+async def test_delete_dish_invalid_uuid(client: TestClient):
     response: Response = \
         await client.delete(f'/api/v1/menus/{uuid.uuid4()}/submenus/{uuid.uuid4()}/dishes/{uuid.uuid4()}')
 

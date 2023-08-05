@@ -1,17 +1,20 @@
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Body, HTTPException, status
-
+from fastapi import APIRouter, Body, HTTPException, Path, status
 from src.api.v1.submenus.exceptions import submenu_not_found
-from src.api.v1.submenus.schemas import SubMenu, NewSubmenu
-from src.api.v1.submenus.service import get_all_submenus, add_submenu, get_submenu_by_id, update_submenu, \
-    delete_submenu_by_id
+from src.api.v1.submenus.schemas import NewSubmenu, SubMenu
+from src.api.v1.submenus.service import (
+    add_submenu,
+    delete_submenu_by_id,
+    get_all_submenus,
+    get_submenu_by_id,
+    update_submenu,
+)
 
 submenus_router = APIRouter()
 
 
-@submenus_router.get('', status_code=200, response_model=List[SubMenu])
+@submenus_router.get('', status_code=200, response_model=list[SubMenu])
 async def get_submenus(menu_uuid: UUID = Path()):
     submenus = await get_all_submenus(menu_uuid)
     if submenus is None:

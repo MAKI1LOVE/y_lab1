@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import uuid
 
 
 class MenuFactory:
     def __init__(
             self,
-            menu_uuid: uuid.UUID = None,
+            menu_uuid: uuid.UUID | None,
             title: str = '',
             description: str = '',
             submenus_count: int = 0,

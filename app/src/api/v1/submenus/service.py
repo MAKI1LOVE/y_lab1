@@ -1,10 +1,9 @@
 from uuid import UUID
 
-from sqlalchemy import select, join, func, update, delete
+from sqlalchemy import delete, func, join, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.database import submenus_table, dishes_table
+from src.database import dishes_table, submenus_table
 from src.dependencies import get_session_deco
 
 

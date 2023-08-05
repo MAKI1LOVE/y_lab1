@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-
 from src.api.v1 import v1_router
 from src.database import init_db
 
