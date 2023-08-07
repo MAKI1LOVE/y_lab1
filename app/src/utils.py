@@ -1,13 +1,14 @@
 import asyncio
 import time
 import uuid
-from typing import Any
+from typing import Annotated, Any, Awaitable, Callable
 
 from aioredis import Redis
 from asyncpg.pgproto.pgproto import UUID as PG_UUID
+from fastapi import Depends
 from orjson import orjson
 from pydantic import BaseModel
-from src.database import get_session
+from src.database import get_redis, get_session
 
 
 def get_session_deco(func):
@@ -59,3 +60,24 @@ async def delete_all_keys(redis: Redis, start_key: str):
     start_key = f'{start_key}*'
     keys = await redis.keys(start_key)
     await asyncio.gather(*[redis.delete(key) for key in keys])
+
+
+async def get_cache_data(
+        redis: Annotated[Redis, Depends(get_redis)],
+        key: str,
+) -> Any:
+    return await get_key(redis, key)
+
+
+async def get_db_data(
+        redis: Redis,
+        key: str,
+        func: Callable[[Any], Awaitable[Any]],
+        *args,
+        **kwargs,
+) -> Any:
+    cache = await get_cache_data(redis, key)
+    if cache is not None:
+        return cache
+
+    return await func(*args, **kwargs)

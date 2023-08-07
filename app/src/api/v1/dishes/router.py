@@ -13,7 +13,7 @@ from src.api.v1.dishes.service import (
     update_dish,
 )
 from src.database import get_redis
-from src.dependencies import get_key, set_key
+from src.utils import get_db_data, set_key
 
 dishes_router = APIRouter()
 
@@ -24,15 +24,12 @@ async def get_dishes(
         submenu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
 ):
-    cache = await get_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes')
-    if cache:
-        return [Dish.model_validate(dish) for dish in cache]
-
-    dishes_db = await get_all_dishes(submenu_uuid)
-    if dishes_db is None:
+    dishes_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes', get_all_dishes,
+                                      submenu_uuid)
+    if dishes_stored is None:
         return []
 
-    dishes = [Dish.model_validate(dish) for dish in dishes_db]
+    dishes = [Dish.model_validate(dish) for dish in dishes_stored]
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes', dishes)
 
     return dishes
@@ -53,9 +50,13 @@ async def create_dish(
         )
 
     dish = Dish.model_validate(dish_db)
+
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish.id}', dish)
-    await redis.unlink(f'menu_{menu_uuid}_submenu_{submenu_uuid}')
-    await redis.unlink(f'menu_{menu_uuid}')
+    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes')
+    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}')
+    await redis.delete(f'menu_{menu_uuid}_submenus')
+    await redis.delete(f'menu_{menu_uuid}')
+    await redis.delete('menus')
 
     return dish
 
@@ -67,15 +68,12 @@ async def get_dish(
         dish_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
 ):
-    cache = await get_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish_uuid}')
-    if cache:
-        return Dish.model_validate(cache)
-
-    dish_db = await get_dish_by_id(dish_uuid)
-    if dish_db is None:
+    dish_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish_uuid}',
+                                    get_dish_by_id, dish_uuid)
+    if dish_stored is None:
         await dish_not_found()
 
-    dish = Dish.model_validate(dish_db)
+    dish = Dish.model_validate(dish_stored)
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish.id}', dish)
 
     return dish
@@ -95,7 +93,9 @@ async def patch_dish(
         await dish_not_found()
 
     dish = Dish.model_validate(dish_db)
+
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish_uuid}', dish)
+    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes')
 
     return dish
 

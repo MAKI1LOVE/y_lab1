@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import coalesce
 from src.database import dishes_table, menus_table, submenus_table
-from src.dependencies import get_session_deco
+from src.utils import get_session_deco
 
 
 @get_session_deco

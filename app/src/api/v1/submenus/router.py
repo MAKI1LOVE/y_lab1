@@ -13,7 +13,7 @@ from src.api.v1.submenus.service import (
     update_submenu,
 )
 from src.database import get_redis
-from src.dependencies import delete_all_keys, get_key, set_key
+from src.utils import delete_all_keys, get_db_data, set_key
 
 submenus_router = APIRouter()
 
@@ -23,15 +23,11 @@ async def get_submenus(
         menu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)]
 ):
-    cache = await get_key(redis, f'menu_{menu_uuid}_submenus')
-    if cache:
-        return [SubMenu.model_validate(submenu) for submenu in cache]
-
-    submenus_db = await get_all_submenus(menu_uuid)
-    if submenus_db is None:
+    submenus_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenus', get_all_submenus, menu_uuid)
+    if submenus_stored is None:
         return []
 
-    submenus = [SubMenu.model_validate(submenu) for submenu in submenus_db]
+    submenus = [SubMenu.model_validate(submenu) for submenu in submenus_stored]
     await set_key(redis, f'menu_{menu_uuid}_submenus', submenus)
 
     return submenus
@@ -51,8 +47,11 @@ async def create_submenu(
         )
 
     submenu = SubMenu.model_validate(submenu_db)
+
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
-    await redis.unlink(f'menu_{menu_uuid}')
+    await redis.delete(f'menu_{menu_uuid}_submenus')
+    await redis.delete(f'menu_{menu_uuid}')
+    await redis.delete('menus')
 
     return submenu
 
@@ -63,15 +62,12 @@ async def get_submenu(
         submenu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
 ):
-    cache = await get_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}')
-    if cache:
-        return SubMenu.model_validate(cache)
-
-    submenu_db = await get_submenu_by_id(menu_uuid, submenu_uuid)
-    if submenu_db is None:
+    submenu_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}', get_submenu_by_id,
+                                       menu_uuid, submenu_uuid)
+    if submenu_stored is None:
         await submenu_not_found()
 
-    submenu = SubMenu.model_validate(submenu_db)
+    submenu = SubMenu.model_validate(submenu_stored)
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
 
     return submenu
@@ -90,7 +86,9 @@ async def patch_submenu(
 
     submenu_db = await get_submenu_by_id(menu_uuid, updated_submenu[0])
     submenu = SubMenu.model_validate(submenu_db)
+
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
+    await redis.delete(f'menu_{menu_uuid}_submenus')
 
     return submenu
 
