@@ -2,7 +2,7 @@ import uuid
 
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-from src.api.v1.menus.service import add_menu
+from src.api.v1.menus.crud import add_menu
 
 
 async def test_get_menus_empty(client: TestClient):

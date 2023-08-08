@@ -1,7 +1,8 @@
 import asyncio
 import time
 import uuid
-from typing import Annotated, Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Annotated, Any
 
 from aioredis import Redis
 from asyncpg.pgproto.pgproto import UUID as PG_UUID
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 from src.database import get_redis, get_session
 
 
-def get_session_deco(func):
+def get_session_deco(func: Callable) -> Any:
     """
     Give new session for every request in service.
     No need to create dependency in endpoint functions.
@@ -19,7 +20,7 @@ def get_session_deco(func):
     :return: simple data transfer
     """
 
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs) -> Any:
         async with get_session() as session:
             data = await func(*args, **kwargs, session=session)
             await session.commit()
@@ -29,7 +30,7 @@ def get_session_deco(func):
     return wrapper
 
 
-def orjson_custom_data_decoder(obj):
+def orjson_custom_data_decoder(obj: Any) -> Any:
     if isinstance(obj, PG_UUID):
         return uuid.UUID(str(obj), version=4)
 
@@ -37,7 +38,12 @@ def orjson_custom_data_decoder(obj):
         return dict(obj)
 
 
-async def set_key(redis: Redis, key: str, data: Any, secs_to_expire: int = 3600) -> None:
+async def set_key(
+        redis: Redis,
+        key: str,
+        data: Any,
+        secs_to_expire: int = 3600
+) -> None:
     data = {'data': data, 'expires': time.time() + secs_to_expire}
     value = orjson.dumps(data, default=orjson_custom_data_decoder)
     await redis.set(key, value)
@@ -56,7 +62,7 @@ async def get_key(redis: Redis, key: str) -> Any:
     return value.get('data')
 
 
-async def delete_all_keys(redis: Redis, start_key: str):
+async def delete_all_keys(redis: Redis, start_key: str) -> None:
     start_key = f'{start_key}*'
     keys = await redis.keys(start_key)
     await asyncio.gather(*[redis.delete(key) for key in keys])

@@ -1,85 +1,78 @@
 from uuid import UUID
 
-from sqlalchemy import delete, func, join, select, update
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import dishes_table, submenus_table
-from src.utils import get_session_deco
+from aioredis import Redis
+from fastapi import HTTPException, status
+from src.api.v1.submenus.crud import (
+    add_submenu,
+    delete_submenu_by_id,
+    get_all_submenus,
+    get_submenu_by_id,
+    update_submenu,
+)
+from src.api.v1.submenus.exceptions import submenu_not_found
+from src.api.v1.submenus.schemas import NewSubmenu, SubMenu
+from src.utils import delete_all_keys, get_db_data, set_key
 
 
-@get_session_deco
-async def get_all_submenus(menu_uuid: UUID, session: AsyncSession):
-    stmt = select(
-        submenus_table,
-        func.count(dishes_table.c.id).label('dishes_count')
-    ).select_from(
-        join(
-            left=submenus_table,
-            right=dishes_table,
-            isouter=True
+async def get_submenus_service(redis: Redis, menu_uuid: UUID) -> list[SubMenu]:
+    submenus_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenus', get_all_submenus, menu_uuid)
+    if submenus_stored is None:
+        return []
+
+    submenus = [SubMenu.model_validate(submenu) for submenu in submenus_stored]
+    await set_key(redis, f'menu_{menu_uuid}_submenus', submenus)
+
+    return submenus
+
+
+async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: NewSubmenu) -> SubMenu:
+    submenu_db = await add_submenu(menu_uuid, new_submenu.title, new_submenu.description)
+    if submenu_db is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='smth bad'
         )
-    ).where(
-        submenus_table.c.menu_id == menu_uuid
-    ).group_by(
-        submenus_table
-    )
 
-    return (await session.execute(stmt)).all()
+    submenu = SubMenu.model_validate(submenu_db)
 
+    await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
+    await redis.delete(f'menu_{menu_uuid}_submenus')
+    await redis.delete(f'menu_{menu_uuid}')
+    await redis.delete('menus')
 
-@get_session_deco
-async def add_submenu(menu_uuid: UUID, title: str, description: str, session: AsyncSession):
-    stmt = insert(submenus_table).values(
-        {
-            'menu_id': menu_uuid,
-            'title': title,
-            'description': description
-        }
-    ).returning(submenus_table)
-
-    return (await session.execute(stmt)).one_or_none()
+    return submenu
 
 
-@get_session_deco
-async def get_submenu_by_id(menu_uuid: UUID, submenu_uuid: UUID, session: AsyncSession):
-    stmt = select(
-        submenus_table,
-        func.count(dishes_table.c.id).label('dishes_count')
-    ).select_from(
-        join(
-            left=submenus_table,
-            right=dishes_table,
-            isouter=True
-        )
-    ).where(
-        submenus_table.c.id == submenu_uuid and submenus_table.c.menu_id == menu_uuid
-    ).group_by(submenus_table)
+async def get_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID) -> SubMenu:
+    submenu_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}', get_submenu_by_id,
+                                       menu_uuid, submenu_uuid)
+    if submenu_stored is None:
+        await submenu_not_found()
 
-    return (await session.execute(stmt)).one_or_none()
+    submenu = SubMenu.model_validate(submenu_stored)
+    await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
+
+    return submenu
 
 
-@get_session_deco
-async def update_submenu(menu_uuid: UUID, submenu_uuid: UUID, title: str, description: str, session: AsyncSession):
-    stmt = update(
-        submenus_table
-    ).where(
-        submenus_table.c.menu_id == menu_uuid and submenus_table.c.id == submenu_uuid
-    ).values(
-        {
-            submenus_table.c.title: title,
-            submenus_table.c.description: description
-        }
-    ).returning(submenus_table.c.id)
+async def patch_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID, new_submenu: NewSubmenu) -> SubMenu:
+    updated_submenu = await update_submenu(menu_uuid, submenu_uuid, new_submenu.title, new_submenu.description)
+    if updated_submenu is None:
+        await submenu_not_found()
 
-    return (await session.execute(stmt)).one_or_none()
+    submenu_db = await get_submenu_by_id(menu_uuid, updated_submenu[0])
+    submenu = SubMenu.model_validate(submenu_db)
+
+    await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
+    await redis.delete(f'menu_{menu_uuid}_submenus')
+
+    return submenu
 
 
-@get_session_deco
-async def delete_submenu_by_id(menu_uuid: UUID, submenu_uuid: UUID, session: AsyncSession):
-    stmt = delete(
-        submenus_table
-    ).where(
-        submenus_table.c.menu_id == menu_uuid and submenus_table.c.id == submenu_uuid
-    )
+async def delete_submenu_service(redis, menu_uuid: UUID, submenu_uuid: UUID) -> None:
+    await delete_all_keys(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}')
+    await redis.delete(f'menu_{menu_uuid}_submenus')
+    await redis.delete(f'menu_{menu_uuid}')
+    await redis.delete('menus')
 
-    return await session.execute(stmt)
+    await delete_submenu_by_id(menu_uuid, submenu_uuid)

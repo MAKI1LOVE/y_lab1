@@ -2,9 +2,9 @@ import uuid
 
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-from src.api.v1.dishes.service import add_dish
-from src.api.v1.menus.service import add_menu
-from src.api.v1.submenus.service import add_submenu
+from src.api.v1.dishes.crud import add_dish
+from src.api.v1.menus.crud import add_menu
+from src.api.v1.submenus.crud import add_submenu
 
 
 async def test_get_dishes_empty(client: TestClient):

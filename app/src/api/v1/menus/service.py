@@ -1,134 +1,73 @@
-from __future__ import annotations
+from uuid import UUID
 
-import uuid
-from collections.abc import Sequence
+from aioredis import Redis
+from fastapi import HTTPException, status
+from src.api.v1.menus.crud import (
+    add_menu,
+    delete_menu_by_id,
+    get_all_menus,
+    get_menu_by_id,
+    update_menu,
+)
+from src.api.v1.menus.exceptions import menu_not_found
+from src.api.v1.menus.schemas import Menu, NewMenu
+from src.utils import delete_all_keys, get_db_data, set_key
 
-from sqlalchemy import Row, delete, func, join, select, update
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.functions import coalesce
-from src.database import dishes_table, menus_table, submenus_table
-from src.utils import get_session_deco
+
+async def get_all_menus_service(redis: Redis) -> list[Menu]:
+    menus_stored = await get_db_data(redis, 'menus', get_all_menus)
+
+    if menus_stored is None:
+        return []
+
+    menus = [Menu.model_validate(menu) for menu in menus_stored]
+    await set_key(redis, 'menus', menus)
+
+    return menus
 
 
-@get_session_deco
-async def get_all_menus(session: AsyncSession) -> Sequence[Row]:
-    """
-    SELECT m.id, m.title, m.description, COUNT(t.id) AS submenus, SUM(COALESCE(t.dishes, 0)) AS dishes
-        FROM menus AS m
-        LEFT OUTER JOIN (
-            SELECT s.id, s.menu_id, COUNT(d.id) AS dishes
-                FROM submenus AS s
-                LEFT OUTER JOIN dishes AS d ON d.submenu_id=s.id
-                GROUP BY s.id, s.menu_id
-        ) as t ON t.menu_id=m.id
-        GROUP BY m.id, m.title, m.description;
-    :param session:
-    :return:
-    """
-    subq = select(
-        submenus_table.c.id,
-        submenus_table.c.menu_id,
-        func.count(dishes_table.c.id).label('dishes')
-    ).select_from(
-        join(
-            left=submenus_table,
-            right=dishes_table,
-            isouter=True
+async def create_menu_service(redis: Redis, new_menu: NewMenu) -> Menu:
+    menu_db = await add_menu(new_menu.title, new_menu.description)
+    if menu_db is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='smth bad'
         )
-    ).group_by(submenus_table.c.id, submenus_table.c.menu_id)
 
-    # print(subq)
-    stmt = select(
-        menus_table,
-        func.count(subq.c.id).label('submenus_count'),
-        func.sum(coalesce(subq.c.dishes, 0)).label('dishes_count')
-    ).select_from(
-        join(
-            left=menus_table,
-            right=subq,
-            onclause=menus_table.c.id == subq.c.menu_id,
-            isouter=True
-        )
-    ).group_by(menus_table)
+    menu = Menu.model_validate(menu_db)
+    await set_key(redis, f'menu_{menu.id}', menu)
+    await redis.delete('menus')
 
-    return (await session.execute(stmt)).all()
+    return menu
 
 
-@get_session_deco
-async def add_menu(title: str, description: str, session: AsyncSession) -> Row:
-    stmt = insert(menus_table).values({
-        'title': title,
-        'description': description
-    }).returning(menus_table.c.id, menus_table.c.title, menus_table.c.description)
+async def get_menu_service(redis: Redis, menu_uuid: UUID) -> Menu:
+    menu_stored = await get_db_data(redis, f'menu_{menu_uuid}', get_menu_by_id, menu_uuid)
 
-    return (await session.execute(stmt)).one_or_none()
+    if menu_stored is None:
+        await menu_not_found()
 
-
-@get_session_deco
-async def get_menu_by_id(menu_uuid: uuid.UUID, session: AsyncSession) -> Row | None:
-    f"""
-    SELECT m.id, m.title, m.description, COUNT(t.id) AS submenus, SUM(COALESCE(t.dishes, 0)) AS dishes
-        FROM menus AS m
-        LEFT OUTER JOIN (
-            SELECT s.id, s.menu_id, COUNT(d.id) AS dishes
-                FROM submenus AS s
-                LEFT OUTER JOIN dishes AS d ON d.submenu_id=s.id
-                GROUP BY s.id, s.menu_id
-        ) as t ON t.menu_id=m.id
-        WHERE m.id == {menu_uuid}
-        GROUP BY m.id, m.title, m.description;
-    :param menu_uuid:
-    :param session:
-    :return:
-    """
-    subq = select(
-        submenus_table.c.id,
-        submenus_table.c.menu_id,
-        func.count(dishes_table.c.id).label('dishes')
-    ).select_from(
-        join(
-            left=submenus_table,
-            right=dishes_table,
-            isouter=True
-        )
-    ).group_by(submenus_table.c.id, submenus_table.c.menu_id)
-
-    stmt = select(
-        menus_table,
-        func.count(subq.c.id).label('submenus_count'),
-        # SADeprecationWarning: The SelectBase.c and SelectBase.columns attributes are deprecated and will be removed in a future release; these attributes implicitly create a subquery that should be explicit.  Please call SelectBase.subquery() first in order to create a subquery, which then contains this attribute.  To access the columns that this SELECT object SELECTs from, use the SelectBase.selected_columns attribute.
-        func.sum(coalesce(subq.c.dishes, 0)).label('dishes_count')  # up
-    ).select_from(
-        join(
-            left=menus_table,
-            right=subq,
-            onclause=menus_table.c.id == subq.c.menu_id,  # up
-            isouter=True
-        )
-    ).where(
-        menus_table.c.id == menu_uuid
-    ).group_by(menus_table)
-
-    return (await session.execute(stmt)).one_or_none()
+    menu = Menu.model_validate(menu_stored)
+    await set_key(redis, f'menu_{menu.id}', menu)
+    return menu
 
 
-@get_session_deco
-async def update_menu(menu_uuid: uuid.UUID, title: str, description: str, session: AsyncSession) -> Row | None:
-    stmt = update(menus_table) \
-        .where(menus_table.c.id == menu_uuid) \
-        .values(
-        {
-            menus_table.c.title: title,
-            menus_table.c.description: description
-        }
-    ).returning(menus_table.c.id)
+async def patch_menu_service(redis: Redis, menu_uuid: UUID, new_menu: NewMenu) -> Menu:
+    updated_menu_id = await update_menu(menu_uuid, new_menu.title, new_menu.description)
+    if updated_menu_id is None:
+        await menu_not_found()
 
-    return (await session.execute(stmt)).one_or_none()
+    menu_db = await get_menu_by_id(updated_menu_id[0])
+    menu = Menu.model_validate(menu_db)
+
+    await set_key(redis, f'menu_{menu.id}', menu)
+    await redis.delete('menus')
+
+    return menu
 
 
-@get_session_deco
-async def delete_menu_by_id(menu_uuid: uuid.UUID, session: AsyncSession):
-    stmt = delete(menus_table).where(menus_table.c.id == menu_uuid)
+async def delete_menu_service(redis: Redis, menu_uuid: UUID) -> None:
+    await delete_all_keys(redis, f'menu_{menu_uuid}')
+    await redis.delete('menus')
 
-    return await session.execute(stmt)
+    await delete_menu_by_id(menu_uuid)
