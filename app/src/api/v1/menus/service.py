@@ -69,5 +69,4 @@ async def patch_menu_service(redis: Redis, menu_uuid: UUID, new_menu: NewMenu) -
 async def delete_menu_service(redis: Redis, menu_uuid: UUID) -> None:
     await delete_all_keys(redis, f'menu_{menu_uuid}')
     await redis.delete('menus')
-
     await delete_menu_by_id(menu_uuid)

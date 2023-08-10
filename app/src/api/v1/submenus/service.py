@@ -10,6 +10,7 @@ from src.api.v1.submenus.crud import (
     update_submenu,
 )
 from src.api.v1.submenus.exceptions import submenu_not_found
+from src.api.v1.submenus.redis import clear_submenus_cache
 from src.api.v1.submenus.schemas import NewSubmenu, SubMenu
 from src.utils import delete_all_keys, get_db_data, set_key
 
@@ -36,9 +37,7 @@ async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: New
     submenu = SubMenu.model_validate(submenu_db)
 
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
-    await redis.delete(f'menu_{menu_uuid}_submenus')
-    await redis.delete(f'menu_{menu_uuid}')
-    await redis.delete('menus')
+    await clear_submenus_cache(redis, menu_uuid)
 
     return submenu
 
@@ -71,8 +70,5 @@ async def patch_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUI
 
 async def delete_submenu_service(redis, menu_uuid: UUID, submenu_uuid: UUID) -> None:
     await delete_all_keys(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}')
-    await redis.delete(f'menu_{menu_uuid}_submenus')
-    await redis.delete(f'menu_{menu_uuid}')
-    await redis.delete('menus')
-
+    await clear_submenus_cache(redis, menu_uuid)
     await delete_submenu_by_id(menu_uuid, submenu_uuid)

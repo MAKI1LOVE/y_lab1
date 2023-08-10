@@ -10,6 +10,7 @@ from src.api.v1.dishes.crud import (
     update_dish,
 )
 from src.api.v1.dishes.exceptions import dish_not_found
+from src.api.v1.dishes.redis import clear_dish_cache
 from src.api.v1.dishes.schemas import Dish, NewDish
 from src.utils import get_db_data, set_key
 
@@ -37,11 +38,7 @@ async def create_dish_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID,
     dish = Dish.model_validate(dish_db)
 
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish.id}', dish)
-    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes')
-    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}')
-    await redis.delete(f'menu_{menu_uuid}_submenus')
-    await redis.delete(f'menu_{menu_uuid}')
-    await redis.delete('menus')
+    await clear_dish_cache(redis, menu_uuid, submenu_uuid)
 
     return dish
 
@@ -73,10 +70,5 @@ async def patch_dish_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID, 
 
 async def delete_dish_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID, dish_uuid: UUID) -> None:
     await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}_dish_{dish_uuid}')
-    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}_dishes')
-    await redis.delete(f'menu_{menu_uuid}_submenu_{submenu_uuid}')
-    await redis.delete(f'menu_{menu_uuid}_submenus')
-    await redis.delete(f'menu_{menu_uuid}')
-    await redis.delete('menus')
-
+    await clear_dish_cache(redis, menu_uuid, submenu_uuid)
     await delete_dish_by_id(dish_uuid)
