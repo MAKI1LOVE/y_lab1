@@ -1,8 +1,8 @@
 from aioredis import Redis
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
-from src.api.v1.menus.schemas import Menu
-from src.api.v1.submenus.schemas import SubMenu
+from src.api.v1.menus.schemas import MenuWithCount
+from src.api.v1.submenus.schemas import SubmenuCount
 from src.utils import get_key
 
 
@@ -148,7 +148,7 @@ async def test_submenu_create_menus_cache_clear(client: TestClient, redis: Redis
     response: Response = await client.get('/api/v1/menus')
     assert response.status_code == 200
 
-    cache: list[Menu] = await get_key(redis, 'menus')
+    cache: list[MenuWithCount] = await get_key(redis, 'menus')
     assert cache == []
 
     response = await client.post('/api/v1/menus', json=new_menu)
@@ -171,7 +171,7 @@ async def test_menu_create_menus_and_submenus_cache_clear(client: TestClient, re
     response = await client.get('/api/v1/menus')
     assert response.status_code == 200
 
-    menus_cache: list[Menu] = await get_key(redis, 'menus')
+    menus_cache: list[MenuWithCount] = await get_key(redis, 'menus')
     assert len(menus_cache) == 1
     assert menus_cache[0]['title'] == new_menu['title']
 
@@ -179,7 +179,7 @@ async def test_menu_create_menus_and_submenus_cache_clear(client: TestClient, re
     response = await client.get(f'/api/v1/menus/{menu_id}/submenus')
     assert response.status_code == 200
 
-    submenus_cache: list[SubMenu] = await get_key(redis, f'menu_{menu_id}_submenus')
+    submenus_cache: list[SubmenuCount] = await get_key(redis, f'menu_{menu_id}_submenus')
     assert submenus_cache == []
 
     # create submenu
@@ -216,14 +216,14 @@ async def test_menu_create_menus_and_submenus_and_dishes_cache_clear(client: Tes
     response = await client.get('/api/v1/menus')
     assert response.status_code == 200
 
-    menus_cache: list[Menu] = await get_key(redis, 'menus')
+    menus_cache: list[MenuWithCount] = await get_key(redis, 'menus')
     assert len(menus_cache) == 1
     assert menus_cache[0]['title'] == new_menu['title']
 
     response = await client.get(f'/api/v1/menus/{menu_id}/submenus')
     assert response.status_code == 200
 
-    submenus_cache: list[SubMenu] = await get_key(redis, f'menu_{menu_id}_submenus')
+    submenus_cache: list[SubmenuCount] = await get_key(redis, f'menu_{menu_id}_submenus')
     assert len(submenus_cache) == 1
     assert submenus_cache[0]['title'] == new_submenu['title']
 

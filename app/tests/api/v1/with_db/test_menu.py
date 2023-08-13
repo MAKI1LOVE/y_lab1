@@ -2,7 +2,9 @@ import uuid
 
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
+from src.api.v1.dishes.crud import add_dish
 from src.api.v1.menus.crud import add_menu
+from src.api.v1.submenus.crud import add_submenu
 
 
 async def test_get_menus_empty(client: TestClient):
@@ -10,6 +12,19 @@ async def test_get_menus_empty(client: TestClient):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+async def test_get_menus(client: TestClient):
+    new_menu1 = {'title': 't1', 'description': 'd1'}
+    new_menu2 = {'title': 't2', 'description': 'd2'}
+
+    await add_menu(new_menu1['title'], new_menu1['description'])
+    await add_menu(new_menu2['title'], new_menu2['description'])
+    response: Response = await client.get('/api/v1/menus')
+
+    assert response.status_code == 200
+    out = response.json()
+    assert len(out) == 2
 
 
 async def test_create_menu(client: TestClient):
@@ -64,19 +79,6 @@ async def test_get_menu_wrong_uuid_format(client: TestClient):
     assert response.status_code == 422
 
 
-async def test_get_menus(client: TestClient):
-    new_menu1 = {'title': 't1', 'description': 'd1'}
-    new_menu2 = {'title': 't2', 'description': 'd2'}
-
-    await add_menu(new_menu1['title'], new_menu1['description'])
-    await add_menu(new_menu2['title'], new_menu2['description'])
-    response: Response = await client.get('/api/v1/menus')
-
-    assert response.status_code == 200
-    out = response.json()
-    assert len(out) == 2
-
-
 async def test_patch_menu(client: TestClient):
     old_menu = {'title': 't_old', 'description': 'd_old'}
     new_menu = {'title': 't_new', 'description': 'd_new'}
@@ -118,3 +120,30 @@ async def test_delete_menu_wrong_uuid(client: TestClient):
     out = response.json()
     assert out['status']
     assert out['detail'] == 'The menu has been deleted'
+
+
+# @pytest.mark.skip
+async def test_get_menus_full(client: TestClient):
+    new_menu = {'title': 'menu1', 'description': 'menu1 desc'}
+    new_submenu1 = {'title': 'submenu1', 'description': 'submenu1 desc'}
+    new_submenu2 = {'title': 'submenu2', 'description': 'submenu2 desc'}
+    new_dish1 = {'title': 'dish1', 'description': 'new dish1', 'price': '12'}
+    new_dish2 = {'title': 'dish2', 'description': 'new dish2', 'price': '13'}
+
+    menu_db = await add_menu(new_menu['title'], new_menu['description'])
+    submenu1_db = await add_submenu(menu_db.id, new_submenu1['title'], new_submenu1['description'])
+    submenu2_db = await add_submenu(menu_db.id, new_submenu2['title'], new_submenu2['description'])
+    dish1_db = await add_dish(submenu1_db.id, new_dish1['title'], new_dish1['description'], new_dish1['price'])
+    dish2_db = await add_dish(submenu1_db.id, new_dish2['title'], new_dish2['description'], new_dish2['price'])
+
+    response: Response = await client.get('/api/v1/menus/full')
+
+    assert response.status_code == 200
+    menus = response.json().get('menus')
+    assert menus is not None
+    assert menus[0]['id'] == str(menu_db.id)
+    assert menus[0]['submenus'][0]['id'] == str(submenu1_db.id)
+    assert menus[0]['submenus'][0]['dishes'][0]['id'] == str(dish1_db.id)
+    assert menus[0]['submenus'][0]['dishes'][1]['id'] == str(dish2_db.id)
+    assert menus[0]['submenus'][1]['id'] == str(submenu2_db.id)
+    assert menus[0]['submenus'][1]['dishes'] == []

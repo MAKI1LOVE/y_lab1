@@ -6,6 +6,6 @@ from src.api.v1.submenus.router import submenus_router
 
 v1_router = APIRouter()
 
-v1_router.include_router(menus_router, prefix='/menus')
-v1_router.include_router(submenus_router, prefix='/menus/{menu_uuid}/submenus')
-v1_router.include_router(dishes_router, prefix='/menus/{menu_uuid}/submenus/{submenu_uuid}/dishes')
+v1_router.include_router(menus_router, prefix='/menus', tags=['menus'])
+v1_router.include_router(submenus_router, prefix='/menus/{menu_uuid}/submenus', tags=['submenus'])
+v1_router.include_router(dishes_router, prefix='/menus/{menu_uuid}/submenus/{submenu_uuid}/dishes', tags=['dishes'])

@@ -3,16 +3,17 @@ from uuid import UUID
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import dishes_table, submenus_table
+from src.api.v1.dishes.models import Dishes
+from src.api.v1.submenus.models import Submenus
 from src.utils import get_session_deco
 
 
 @get_session_deco
 async def get_all_dishes(submenu_uuid: UUID, session: AsyncSession):
     stmt = select(
-        dishes_table
+        Dishes.id, Dishes.title, Dishes.description, Dishes.price, Dishes.submenu_id,
     ).where(
-        dishes_table.c.submenu_id == submenu_uuid and dishes_table.c.submenu_id == submenus_table.c.id
+        Dishes.submenu_id == submenu_uuid and Dishes.submenu_id == Submenus.id
     )
 
     return (await session.execute(stmt)).all()
@@ -21,7 +22,7 @@ async def get_all_dishes(submenu_uuid: UUID, session: AsyncSession):
 @get_session_deco
 async def add_dish(submenu_uuid: UUID, title: str, description: str, price: str, session: AsyncSession):
     stmt = insert(
-        dishes_table
+        Dishes
     ).values(
         {
             'submenu_id': submenu_uuid,
@@ -29,7 +30,7 @@ async def add_dish(submenu_uuid: UUID, title: str, description: str, price: str,
             'description': description,
             'price': price
         }
-    ).returning(dishes_table)
+    ).returning(Dishes.id, Dishes.title, Dishes.description, Dishes.price, Dishes.submenu_id,)
 
     return (await session.execute(stmt)).one_or_none()
 
@@ -37,9 +38,9 @@ async def add_dish(submenu_uuid: UUID, title: str, description: str, price: str,
 @get_session_deco
 async def get_dish_by_id(dish_uuid: UUID, session: AsyncSession):
     stmt = select(
-        dishes_table
+        Dishes.id, Dishes.title, Dishes.description, Dishes.price, Dishes.submenu_id,
     ).where(
-        dishes_table.c.id == dish_uuid
+        Dishes.id == dish_uuid
     )
 
     return (await session.execute(stmt)).one_or_none()
@@ -48,16 +49,16 @@ async def get_dish_by_id(dish_uuid: UUID, session: AsyncSession):
 @get_session_deco
 async def update_dish(dish_uuid: UUID, title: str, description: str, price: str, session: AsyncSession):
     stmt = update(
-        dishes_table
+        Dishes
     ).values(
         {
-            dishes_table.c.title: title,
-            dishes_table.c.description: description,
-            dishes_table.c.price: price
+            Dishes.title: title,
+            Dishes.description: description,
+            Dishes.price: price
         }
     ).where(
-        dishes_table.c.id == dish_uuid
-    ).returning(dishes_table)
+        Dishes.id == dish_uuid
+    ).returning(Dishes.id, Dishes.title, Dishes.description, Dishes.price, Dishes.submenu_id,)
 
     return (await session.execute(stmt)).one_or_none()
 
@@ -65,9 +66,9 @@ async def update_dish(dish_uuid: UUID, title: str, description: str, price: str,
 @get_session_deco
 async def delete_dish_by_id(dish_uuid: UUID, session: AsyncSession):
     stmt = delete(
-        dishes_table
+        Dishes
     ).where(
-        dishes_table.c.id == dish_uuid
+        Dishes.id == dish_uuid
     )
 
     return await session.execute(stmt)

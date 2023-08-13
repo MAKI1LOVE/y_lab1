@@ -3,7 +3,7 @@ from uuid import UUID
 
 from aioredis import Redis
 from fastapi import APIRouter, Body, Depends, Path
-from src.api.v1.submenus.schemas import NewSubmenu, SubMenu
+from src.api.v1.submenus.schemas import NewSubmenu, SubmenuCount
 from src.api.v1.submenus.service import (
     create_submenu_service,
     delete_submenu_service,
@@ -16,7 +16,7 @@ from src.database import get_redis
 submenus_router = APIRouter()
 
 
-@submenus_router.get('', status_code=200, response_model=list[SubMenu])
+@submenus_router.get('', status_code=200, response_model=list[SubmenuCount])
 async def get_submenus(
         menu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)]
@@ -24,7 +24,7 @@ async def get_submenus(
     return await get_submenus_service(redis, menu_uuid)
 
 
-@submenus_router.post('', status_code=201, response_model=SubMenu)
+@submenus_router.post('', status_code=201, response_model=SubmenuCount)
 async def create_submenu(
         menu_uuid: Annotated[UUID, Path()],
         new_submenu: Annotated[NewSubmenu, Body()],
@@ -33,7 +33,7 @@ async def create_submenu(
     return await create_submenu_service(redis, menu_uuid, new_submenu)
 
 
-@submenus_router.get('/{submenu_uuid}', status_code=200, response_model=SubMenu)
+@submenus_router.get('/{submenu_uuid}', status_code=200, response_model=SubmenuCount)
 async def get_submenu(
         menu_uuid: Annotated[UUID, Path()],
         submenu_uuid: Annotated[UUID, Path()],
@@ -42,7 +42,7 @@ async def get_submenu(
     return await get_submenu_service(redis, menu_uuid, submenu_uuid)
 
 
-@submenus_router.patch('/{submenu_uuid}', status_code=200, response_model=SubMenu)
+@submenus_router.patch('/{submenu_uuid}', status_code=200, response_model=SubmenuCount)
 async def patch_submenu(
         menu_uuid: Annotated[UUID, Path()],
         submenu_uuid: Annotated[UUID, Path()],

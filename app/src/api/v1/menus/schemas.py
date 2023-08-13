@@ -1,22 +1,28 @@
 from pydantic import UUID4, BaseModel, ConfigDict, Field
+from src.api.v1.submenus.schemas import SubmenuFull
 
 
-class Menu(BaseModel):
-    id: UUID4
+class BaseMenu(BaseModel):
     title: str
     description: str
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
+class Menu(BaseMenu):
+    id: UUID4
+
+
+class MenuWithCount(Menu):
     submenus_count: int = Field(default=0)
     dishes_count: int = Field(default=0)
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+
+class NewMenu(BaseMenu):
+    pass
 
 
-class NewMenu(BaseModel):
-    title: str
-    description: str
-
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+class MenuFull(Menu):
+    submenus: list[SubmenuFull] = Field(default=[])

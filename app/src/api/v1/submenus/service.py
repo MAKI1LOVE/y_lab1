@@ -11,22 +11,22 @@ from src.api.v1.submenus.crud import (
 )
 from src.api.v1.submenus.exceptions import submenu_not_found
 from src.api.v1.submenus.redis import clear_submenus_cache
-from src.api.v1.submenus.schemas import NewSubmenu, SubMenu
+from src.api.v1.submenus.schemas import NewSubmenu, SubmenuCount
 from src.utils import delete_all_keys, get_db_data, set_key
 
 
-async def get_submenus_service(redis: Redis, menu_uuid: UUID) -> list[SubMenu]:
+async def get_submenus_service(redis: Redis, menu_uuid: UUID) -> list[SubmenuCount]:
     submenus_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenus', get_all_submenus, menu_uuid)
     if submenus_stored is None:
         return []
 
-    submenus = [SubMenu.model_validate(submenu) for submenu in submenus_stored]
+    submenus = [SubmenuCount.model_validate(submenu) for submenu in submenus_stored]
     await set_key(redis, f'menu_{menu_uuid}_submenus', submenus)
 
     return submenus
 
 
-async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: NewSubmenu) -> SubMenu:
+async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: NewSubmenu) -> SubmenuCount:
     submenu_db = await add_submenu(menu_uuid, new_submenu.title, new_submenu.description)
     if submenu_db is None:
         raise HTTPException(
@@ -34,7 +34,7 @@ async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: New
             detail='smth bad'
         )
 
-    submenu = SubMenu.model_validate(submenu_db)
+    submenu = SubmenuCount.model_validate(submenu_db)
 
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
     await clear_submenus_cache(redis, menu_uuid)
@@ -42,25 +42,29 @@ async def create_submenu_service(redis: Redis, menu_uuid: UUID, new_submenu: New
     return submenu
 
 
-async def get_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID) -> SubMenu:
+async def get_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID) -> SubmenuCount:
     submenu_stored = await get_db_data(redis, f'menu_{menu_uuid}_submenu_{submenu_uuid}', get_submenu_by_id,
                                        menu_uuid, submenu_uuid)
     if submenu_stored is None:
         await submenu_not_found()
 
-    submenu = SubMenu.model_validate(submenu_stored)
+    submenu = SubmenuCount.model_validate(submenu_stored)
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
 
     return submenu
 
 
-async def patch_submenu_service(redis: Redis, menu_uuid: UUID, submenu_uuid: UUID, new_submenu: NewSubmenu) -> SubMenu:
-    updated_submenu = await update_submenu(menu_uuid, submenu_uuid, new_submenu.title, new_submenu.description)
-    if updated_submenu is None:
+async def patch_submenu_service(
+        redis: Redis,
+        menu_uuid: UUID,
+        submenu_uuid: UUID,
+        new_submenu: NewSubmenu
+) -> SubmenuCount:
+    updated_submenu_db = await update_submenu(menu_uuid, submenu_uuid, new_submenu.title, new_submenu.description)
+    if updated_submenu_db is None:
         await submenu_not_found()
 
-    submenu_db = await get_submenu_by_id(menu_uuid, updated_submenu[0])
-    submenu = SubMenu.model_validate(submenu_db)
+    submenu = SubmenuCount.model_validate(updated_submenu_db)
 
     await set_key(redis, f'menu_{menu_uuid}_submenu_{submenu.id}', submenu)
     await redis.delete(f'menu_{menu_uuid}_submenus')

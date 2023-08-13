@@ -38,11 +38,11 @@ async def redis():
         pass
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 async def clear_redis_cache():
     f = get_redis()
     redis = await f.asend(None)
-    await redis.flushall()
+    await redis.flushall(asynchronous=True)
     try:
         await f.asend(None)
     except StopAsyncIteration:

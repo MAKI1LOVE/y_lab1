@@ -1,8 +1,8 @@
 from async_asgi_testclient import TestClient
 from async_asgi_testclient.response import Response
 from src.api.v1.dishes.schemas import Dish
-from src.api.v1.menus.schemas import Menu
-from src.api.v1.submenus.schemas import SubMenu
+from src.api.v1.menus.schemas import MenuWithCount
+from src.api.v1.submenus.schemas import SubmenuCount
 
 
 async def test_acceptance1(client: TestClient):
@@ -16,7 +16,7 @@ async def test_acceptance1(client: TestClient):
     response: Response = await client.post('/api/v1/menus', json=new_menu)
 
     assert response.status_code == 201
-    db_menu = Menu(**response.json())
+    db_menu = MenuWithCount(**response.json())
     assert db_menu.id is not None
     assert db_menu.dishes_count == 0
     assert db_menu.submenus_count == 0
@@ -27,12 +27,12 @@ async def test_acceptance1(client: TestClient):
     response4: Response = await client.get(f'/api/v1/menus/{db_menu.id}')
 
     assert response2.status_code == 201
-    db_submenu1 = SubMenu(**response2.json())
+    db_submenu1 = SubmenuCount(**response2.json())
     assert db_submenu1.id is not None
     assert db_submenu1.dishes_count == 0
 
     assert response2.status_code == 201
-    db_submenu2 = SubMenu(**response3.json())
+    db_submenu2 = SubmenuCount(**response3.json())
     assert db_submenu2.id is not None
     assert db_submenu2.dishes_count == 0
 
