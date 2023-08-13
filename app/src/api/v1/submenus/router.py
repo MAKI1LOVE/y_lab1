@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from aioredis import Redis
-from fastapi import APIRouter, Body, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path
 from src.api.v1.submenus.schemas import NewSubmenu, SubmenuCount
 from src.api.v1.submenus.service import (
     create_submenu_service,
@@ -19,9 +19,10 @@ submenus_router = APIRouter()
 @submenus_router.get('', status_code=200, response_model=list[SubmenuCount])
 async def get_submenus(
         menu_uuid: Annotated[UUID, Path()],
-        redis: Annotated[Redis, Depends(get_redis)]
+        redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await get_submenus_service(redis, menu_uuid)
+    return await get_submenus_service(redis, menu_uuid, bg_tasks)
 
 
 @submenus_router.post('', status_code=201, response_model=SubmenuCount)
@@ -29,8 +30,9 @@ async def create_submenu(
         menu_uuid: Annotated[UUID, Path()],
         new_submenu: Annotated[NewSubmenu, Body()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await create_submenu_service(redis, menu_uuid, new_submenu)
+    return await create_submenu_service(redis, menu_uuid, new_submenu, bg_tasks)
 
 
 @submenus_router.get('/{submenu_uuid}', status_code=200, response_model=SubmenuCount)
@@ -38,8 +40,9 @@ async def get_submenu(
         menu_uuid: Annotated[UUID, Path()],
         submenu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await get_submenu_service(redis, menu_uuid, submenu_uuid)
+    return await get_submenu_service(redis, menu_uuid, submenu_uuid, bg_tasks)
 
 
 @submenus_router.patch('/{submenu_uuid}', status_code=200, response_model=SubmenuCount)
@@ -48,8 +51,9 @@ async def patch_submenu(
         submenu_uuid: Annotated[UUID, Path()],
         new_submenu: Annotated[NewSubmenu, Body()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await patch_submenu_service(redis, menu_uuid, submenu_uuid, new_submenu)
+    return await patch_submenu_service(redis, menu_uuid, submenu_uuid, new_submenu, bg_tasks)
 
 
 @submenus_router.delete('/{submenu_uuid}', status_code=200, response_model=dict)
@@ -57,7 +61,8 @@ async def delete_submenu(
         menu_uuid: Annotated[UUID, Path()],
         submenu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    await delete_submenu_service(redis, menu_uuid, submenu_uuid)
+    await delete_submenu_service(redis, menu_uuid, submenu_uuid, bg_tasks)
 
     return {'status': True, 'detail': 'The submenu has been deleted'}

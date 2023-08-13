@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from aioredis import Redis
-from fastapi import APIRouter, Body, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Path
 from src.api.v1.menus.schemas import MenuWithCount, NewMenu
 from src.api.v1.menus.service import (
     create_menu_service,
@@ -27,25 +27,28 @@ async def get_menus_full():
 async def get_menu(
         menu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await get_menu_service(redis, menu_uuid)
+    return await get_menu_service(redis, menu_uuid, bg_tasks)
 
 
 @menus_router.patch('/{menu_uuid}', status_code=200, response_model=MenuWithCount)
 async def patch_menu(
         menu_uuid: Annotated[UUID, Path()],
         new_menu: Annotated[NewMenu, Body()],
-        redis: Annotated[Redis, Depends(get_redis)]
+        redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await patch_menu_service(redis, menu_uuid, new_menu)
+    return await patch_menu_service(redis, menu_uuid, new_menu, bg_tasks)
 
 
 @menus_router.delete('/{menu_uuid}', status_code=200, response_model=dict)
 async def delete_menu(
         menu_uuid: Annotated[UUID, Path()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    await delete_menu_service(redis, menu_uuid)
+    await delete_menu_service(redis, menu_uuid, bg_tasks)
 
     return {'status': True, 'detail': 'The menu has been deleted'}
 
@@ -53,13 +56,15 @@ async def delete_menu(
 @menus_router.get('', status_code=200, response_model=list[MenuWithCount])
 async def get_menus(
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await get_all_menus_service(redis)
+    return await get_all_menus_service(redis, bg_tasks)
 
 
 @menus_router.post('', status_code=201, response_model=MenuWithCount)
 async def create_menu(
         new_menu: Annotated[NewMenu, Body()],
         redis: Annotated[Redis, Depends(get_redis)],
+        bg_tasks: BackgroundTasks,
 ):
-    return await create_menu_service(redis, new_menu)
+    return await create_menu_service(redis, new_menu, bg_tasks)
