@@ -10,7 +10,7 @@ from src.database import Base
 class Menus(Base):
     __tablename__ = 'menus'
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4, nullable=False)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4, nullable=False, index=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
 

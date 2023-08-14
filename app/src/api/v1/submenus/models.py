@@ -10,7 +10,7 @@ from src.database import Base
 class Submenus(Base):
     __tablename__ = 'submenus'
 
-    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, nullable=False, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, nullable=False, default=uuid.uuid4, index=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     menu_id: Mapped[str] = mapped_column(Uuid, ForeignKey('menus.id', ondelete='CASCADE', onupdate='CASCADE'),

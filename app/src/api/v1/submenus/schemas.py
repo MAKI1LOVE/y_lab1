@@ -1,4 +1,4 @@
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, UUID5, BaseModel, ConfigDict, Field
 from src.api.v1.dishes.schemas import Dish
 
 
@@ -12,8 +12,8 @@ class SubmenuBase(BaseModel):
 
 
 class Submenu(SubmenuBase):
-    id: UUID4
-    menu_id: UUID4
+    id: UUID4 | UUID5
+    menu_id: UUID4 | UUID5
 
 
 class SubmenuCount(Submenu):

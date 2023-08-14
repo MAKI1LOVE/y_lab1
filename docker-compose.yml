@@ -39,6 +39,37 @@ services:
     networks:
       - prod_network
 
+  rabbitmq:
+    image: "rabbitmq"
+    ports:
+      - "5672:5672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - prod_network
+
+  celery:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: 6379
+      REDIS_USER: ${REDIS_USER}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command:  celery -A src.celery.run worker --loglevel INFO -E -B
+    depends_on:
+      - app
+      - rabbitmq
+    networks:
+      - prod_network
+
   app:
     build:
       context: ./app

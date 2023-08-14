@@ -1,5 +1,5 @@
 from _decimal import Decimal, InvalidOperation
-from pydantic import UUID4, BaseModel, ConfigDict, field_validator
+from pydantic import UUID4, UUID5, BaseModel, ConfigDict, field_validator
 
 
 class DishBase(BaseModel):
@@ -25,8 +25,8 @@ class DishBase(BaseModel):
 
 
 class Dish(DishBase):
-    id: UUID4
-    submenu_id: UUID4
+    id: UUID4 | UUID5
+    submenu_id: UUID4 | UUID5
 
 
 class NewDish(DishBase):

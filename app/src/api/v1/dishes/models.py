@@ -8,9 +8,9 @@ from src.database import Base
 
 
 class Dishes(Base):
-    __tablename__ = 'dishes',
+    __tablename__ = 'dishes'
 
-    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, nullable=False, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, nullable=False, default=uuid.uuid4, index=TypeError)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(String, nullable=False)

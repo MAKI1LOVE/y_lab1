@@ -1,4 +1,4 @@
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, UUID5, BaseModel, ConfigDict, Field
 from src.api.v1.submenus.schemas import SubmenuFull
 
 
@@ -12,7 +12,7 @@ class BaseMenu(BaseModel):
 
 
 class Menu(BaseMenu):
-    id: UUID4
+    id: UUID4 | UUID5
 
 
 class MenuWithCount(Menu):
