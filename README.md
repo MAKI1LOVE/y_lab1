@@ -13,7 +13,7 @@ Run `docker-compose up -d`.
 Run tests with `docker-compose -f docker-compose-test.yml up --abort-on-container-exit`
 
 ## Using excel to update menus
-To update menus from excel file you need to create folder `admin` in `app` root and put there `Menu.xlsx` file.
+To update menus from excel file you need to create folder `admin` in `app` root and put there `Menu.xlsx` file. It is already presented.
 
 If no root is presented or file has different name, celery task will do nothing.
 
